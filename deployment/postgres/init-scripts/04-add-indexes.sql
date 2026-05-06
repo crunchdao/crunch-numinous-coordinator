@@ -17,3 +17,6 @@ CREATE INDEX IF NOT EXISTS idx_scores_event_miner_track ON scores (event_id, min
 
 -- reasoning: scoring task — only fetch unscored
 CREATE INDEX IF NOT EXISTS idx_reasoning_scored ON reasoning (reasoning_scored) WHERE reasoning_scored = false;
+
+-- reasoning: cache lookup — find identical reasoning already scored (hash for exact match on long text)
+CREATE INDEX IF NOT EXISTS idx_reasoning_text_scored ON reasoning USING hash (reasoning) WHERE reasoning_scored = true;

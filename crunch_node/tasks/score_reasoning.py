@@ -127,10 +127,14 @@ class ScoreReasoning(AbstractTask):
                         scores = WORST_SCORE
                         total_empty += 1
                     else:
-                        scores = await self._evaluate(row["reasoning"])
-                        if scores is None:
-                            total_failed += 1
-                            continue
+                        cached = await self._find_cached_scores(row["reasoning"])
+                        if cached is not None:
+                            scores = cached
+                        else:
+                            scores = await self._evaluate(row["reasoning"])
+                            if scores is None:
+                                total_failed += 1
+                                continue
 
                     scores_json = json.dumps(scores)
 
@@ -172,6 +176,28 @@ class ScoreReasoning(AbstractTask):
             )
         else:
             self.logger.debug("No reasoning to score")
+
+    async def _find_cached_scores(self, reasoning: str) -> dict | None:
+        """Look for an identical reasoning text that was already scored."""
+        row = await self.pg_client.fetchrow(
+            """
+            SELECT s.reasoning_scores
+            FROM reasoning r
+            JOIN scores s
+                ON s.event_id = substr(r.unique_event_id, 9)
+                AND s.miner_uid = r.miner_uid
+                AND s.track = r.track
+            WHERE r.reasoning = $1
+              AND r.reasoning_scored = true
+              AND s.reasoning_scores IS NOT NULL
+            ORDER BY r.created_at DESC
+            LIMIT 1
+            """,
+            reasoning,
+        )
+        if row is None:
+            return None
+        return json.loads(row["reasoning_scores"])
 
     async def _evaluate(self, reasoning: str) -> dict | None:
         """Call OpenAI to evaluate reasoning. Returns dict with 5 integer scores or None."""
