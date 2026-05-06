@@ -382,16 +382,7 @@ class RunModels(AbstractTask):
                 extra={"run_id": run_id, "error": str(exc)},
             )
 
-        # Store reasoning
-        try:
-            await self.db_operations.insert_reasoning(run_id, reasoning_text)
-        except Exception as exc:
-            self.logger.error(
-                "Failed to store reasoning",
-                extra={"run_id": run_id, "error": str(exc)},
-            )
-
-        # Store prediction if successful
+        # Store prediction and reasoning if successful
         if status == AgentRunStatus.SUCCESS and prediction_value is not None:
             clipped = max(0.0, min(1.0, prediction_value))
             prediction = PredictionsModel(
@@ -406,6 +397,15 @@ class RunModels(AbstractTask):
                 version_id=version_id,
             )
             await self.db_operations.upsert_predictions([prediction])
+
+            try:
+                await self.db_operations.insert_reasoning(run_id, reasoning_text)
+            except Exception as exc:
+                self.logger.error(
+                    "Failed to store reasoning",
+                    extra={"run_id": run_id, "error": str(exc)},
+                )
+
             self.logger.debug(
                 "Stored prediction",
                 extra={"event_id": event_id, "miner_uid": miner_uid, "prediction": clipped},

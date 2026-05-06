@@ -43,8 +43,13 @@ def _load_system_prompt() -> str:
     return _PROMPT_PATH.read_text(encoding="utf-8") + _SYSTEM_SUFFIX
 
 
+_ERROR_MARKERS = ("Runtime Error:", "HTTP Error:", "Error:", "Traceback")
+
+
 def _is_empty_reasoning(reasoning: str | None) -> bool:
     if not reasoning or reasoning.startswith(MISSING_REASONING_PREFIX):
+        return True
+    if any(reasoning.startswith(marker) for marker in _ERROR_MARKERS):
         return True
     return False
 
@@ -93,7 +98,7 @@ class ScoreReasoning(AbstractTask):
                        r.reasoning
                 FROM reasoning r
                          JOIN scores s
-                              ON 'ifgames-' || s.event_id = r.unique_event_id
+                              ON s.event_id = substr(r.unique_event_id, 9)
                                   AND s.miner_uid = r.miner_uid
                                   AND s.track = r.track
                 WHERE r.reasoning_scored = false
