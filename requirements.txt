@@ -19,3 +19,4 @@ newrelic>=10.0.0
 openai
 testcontainers[postgres]
 pytest-asyncio
+nest-asyncio2

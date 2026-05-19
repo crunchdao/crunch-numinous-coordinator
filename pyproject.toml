@@ -25,6 +25,7 @@ dependencies = [
     "requests",
     "httpx",
     "lru-dict",
+    "nest-asyncio2",
     "newrelic>=10.0.0",
 ]
 
