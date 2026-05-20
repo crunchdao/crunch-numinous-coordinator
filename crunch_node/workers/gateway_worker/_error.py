@@ -54,7 +54,7 @@ def apply_gateway_error_handling_patch():
                         status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
                     gateway_error_handler.logger.error(
-                        error_message,
+                        f"Error in {provider} provider: {error_message}, response body: {response_body}",
                         exc_info=e if status_code >= 500 else None
                     )
 
