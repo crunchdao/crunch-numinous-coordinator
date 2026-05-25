@@ -99,7 +99,8 @@ async def get_leaderboard():
                event_count, global_brier, global_brier_count,
                geopolitics_brier, geopolitics_brier_count, reasoning, computed_at
         FROM leaderboard
-        ORDER BY track, rank
+        WHERE track = 'SIGNAL'
+        ORDER BY rank
         """
     )
 
