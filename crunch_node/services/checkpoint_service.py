@@ -46,12 +46,18 @@ class CheckpointService:
         )
         if row:
             self._last_period_end = row["period_end"]
+            logger.info("Loaded last checkpoint: period_end=%s", self._last_period_end.isoformat())
+        else:
+            logger.info("No previous checkpoint found, start_date=%s", self.start_date.isoformat() if self.start_date else "None")
 
     async def maybe_create_checkpoint(self) -> None:
         """Create a checkpoint if a full period has elapsed."""
         period = self._next_period()
         if period is None:
+            logger.debug("Checkpoint not due yet")
             return
+
+        logger.info("Checkpoint period due, creating...")
 
         period_start, period_end = period
         checkpoint_id = f"CKP_{period_end.strftime('%Y%m%d_%H%M%S')}"
@@ -110,12 +116,17 @@ class CheckpointService:
 
         if self._last_period_end:
             period_start = self._last_period_end
+            logger.debug("Last checkpoint period_end: %s", period_start.isoformat())
         elif self.start_date:
             period_start = self.start_date
+            logger.debug("No previous checkpoint, using start_date: %s", period_start.isoformat())
         else:
             period_start = now - interval
+            logger.debug("No start_date, using now - interval: %s", period_start.isoformat())
 
         period_end = period_start + interval
+        logger.debug("Next period_end: %s, now: %s, due: %s",
+                      period_end.isoformat(), now.isoformat(), period_end <= now)
 
         if period_end > now:
             return None

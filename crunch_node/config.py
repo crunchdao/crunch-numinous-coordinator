@@ -157,7 +157,7 @@ class CrunchNodeConfig:
         default_factory=lambda: (
             datetime.fromisoformat(os.environ["CHECKPOINT_START_DATE"]).replace(tzinfo=timezone.utc)
             if os.getenv("CHECKPOINT_START_DATE")
-            else datetime(2026, 5, 25, 12, 0, 0, tzinfo=timezone.utc)
+            else datetime(2026, 5, 18, 12, 0, 0, tzinfo=timezone.utc)
         )
     )
     checkpoint_benchmark_miner_uid: Optional[int] = field(
