@@ -137,38 +137,33 @@ class CheckpointService:
         entries = [dict(r) for r in rows]
         total_weight = sum(math.exp(self.alpha / r) for r in range(1, self.top_k + 1))
 
-        # Step 1: keep best miner per cruncher, rerank
-        seen_crunchers = set()
-        deduped = []
-        for e in entries:
-            cid = e.get("cruncher_id")
-            if cid and cid in seen_crunchers:
-                continue
-            if cid:
-                seen_crunchers.add(cid)
-            deduped.append(e)
-
-        for i, e in enumerate(deduped, 1):
-            e["original_rank"] = e["rank"]
-            e["rank"] = i
-
-        # Step 2: find benchmark score
+        # Find benchmark score
         benchmark_score = None
         if self.benchmark_miner_uid is not None:
-            for e in deduped:
+            for e in entries:
                 if e["miner_uid"] == self.benchmark_miner_uid:
                     benchmark_score = e["weighted_score"]
                     break
 
-        # Step 3: top K get exponential rewards, zero if worse than benchmark
+        # Top K only — no extension. Duplicates/benchmark get reward=0.
         reward_entries = []
-        for entry in deduped[:self.top_k]:
-            weight = math.exp(self.alpha / entry["rank"])
+        seen_crunchers = set()
+        for entry in entries[:self.top_k]:
+            rank = entry["rank"]
+            weight = math.exp(self.alpha / rank)
             reward_fraction = weight / total_weight
             reward_amount = reward_fraction * self.reward_pool
 
+            # Zero if worse than or equal to benchmark
             if benchmark_score is not None and entry["weighted_score"] >= benchmark_score:
                 reward_amount = 0.0
+
+            # Zero if duplicate cruncher
+            cid = entry.get("cruncher_id")
+            if cid and cid in seen_crunchers:
+                reward_amount = 0.0
+            elif cid:
+                seen_crunchers.add(cid)
 
             reward_entries.append({
                 "model_id": str(entry["miner_uid"]),
@@ -177,8 +172,7 @@ class CheckpointService:
                 "player_name": entry.get("cruncher_name"),
                 "deployment_id": entry.get("deployment_id"),
                 "track": entry["track"],
-                "rank": entry["rank"],
-                "original_rank": entry["original_rank"],
+                "rank": rank,
                 "weighted_score": entry["weighted_score"],
                 "weight": round(weight, 6),
                 "reward_fraction": round(reward_fraction, 6),

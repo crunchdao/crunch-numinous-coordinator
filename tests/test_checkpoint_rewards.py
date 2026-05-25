@@ -48,39 +48,38 @@ def test_benchmark_cutoff():
 
 
 def test_duplicate_cruncher():
-    """Same cruncher with 2 miners: duplicates removed, only best kept, ranks shift."""
+    """Same cruncher with 2 miners: duplicate stays in top K but gets reward=0."""
     svc = _make_service(reward_pool=1000, top_k=5, alpha=1.0)
     rows = [
         _row(1, 1, 0.10, cruncher_id="alice"),
         _row(2, 2, 0.15, cruncher_id="bob"),
-        _row(3, 3, 0.20, cruncher_id="alice"),  # removed
+        _row(3, 3, 0.20, cruncher_id="alice"),  # dup -> reward=0
         _row(4, 4, 0.25, cruncher_id="charlie"),
-        _row(5, 5, 0.30, cruncher_id="bob"),  # removed
+        _row(5, 5, 0.30, cruncher_id="bob"),  # dup -> reward=0
     ]
     entries = svc._compute_rewards(rows)
 
-    # Only 3 unique crunchers remain
-    assert len(entries) == 3
-    assert entries[0]["model_id"] == "1"  # alice, rank 1
-    assert entries[1]["model_id"] == "2"  # bob, rank 2
-    assert entries[2]["model_id"] == "4"  # charlie, rank 3
-    assert all(e["reward_amount"] > 0 for e in entries)
+    assert len(entries) == 5  # all stay in top K
+    assert entries[0]["model_id"] == "1" and entries[0]["reward_amount"] > 0
+    assert entries[1]["model_id"] == "2" and entries[1]["reward_amount"] > 0
+    assert entries[2]["model_id"] == "3" and entries[2]["reward_amount"] == 0  # dup alice
+    assert entries[3]["model_id"] == "4" and entries[3]["reward_amount"] > 0
+    assert entries[4]["model_id"] == "5" and entries[4]["reward_amount"] == 0  # dup bob
 
 
 def test_benchmark_and_duplicate_combined():
-    """Benchmark + duplicate cruncher: dedup first, then benchmark cutoff."""
+    """Benchmark + duplicate cruncher: both zero out, no extension."""
     svc = _make_service(reward_pool=1000, top_k=5, alpha=1.0, benchmark_miner_uid=99)
     rows = [
         _row(1, 1, 0.10, cruncher_id="alice"),
-        _row(2, 2, 0.15, cruncher_id="alice"),  # removed (dup)
-        _row(99, 3, 0.20),  # benchmark
-        _row(4, 4, 0.25, cruncher_id="bob"),  # worse than benchmark
-        _row(5, 5, 0.30, cruncher_id="charlie"),  # worse than benchmark
+        _row(2, 2, 0.15, cruncher_id="alice"),  # dup -> reward=0
+        _row(99, 3, 0.20),  # benchmark -> reward=0
+        _row(4, 4, 0.25, cruncher_id="bob"),  # worse than benchmark -> reward=0
+        _row(5, 5, 0.30, cruncher_id="charlie"),  # worse than benchmark -> reward=0
     ]
     entries = svc._compute_rewards(rows)
 
-    # 4 unique entries (alice deduped), benchmark and worse get 0
-    assert len(entries) == 4
+    assert len(entries) == 5
     paid = [e for e in entries if e["reward_amount"] > 0]
     assert len(paid) == 1
     assert paid[0]["model_id"] == "1"
