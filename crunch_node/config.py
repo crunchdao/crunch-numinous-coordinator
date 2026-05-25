@@ -1,7 +1,8 @@
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import Literal
+from datetime import datetime, timezone
+from typing import Literal, Optional
 
 from dotenv import load_dotenv
 
@@ -137,4 +138,31 @@ class CrunchNodeConfig:
     )
     compute_leaderboard_interval: float = field(
         default_factory=lambda: float(os.getenv("COMPUTE_LEADERBOARD_INTERVAL", "600.0"))
+    )
+
+    # Checkpoint (reward distribution)
+    checkpoint_reward_pool: float = field(
+        default_factory=lambda: float(os.getenv("CHECKPOINT_REWARD_POOL", "500.0"))
+    )
+    checkpoint_top_k: int = field(
+        default_factory=lambda: int(os.getenv("CHECKPOINT_TOP_K", "10"))
+    )
+    checkpoint_alpha: float = field(
+        default_factory=lambda: float(os.getenv("CHECKPOINT_ALPHA", "1.0"))
+    )
+    checkpoint_interval_seconds: int = field(
+        default_factory=lambda: int(os.getenv("CHECKPOINT_INTERVAL_SECONDS", str(7 * 24 * 3600)))
+    )
+    checkpoint_start_date: datetime = field(
+        default_factory=lambda: (
+            datetime.fromisoformat(os.environ["CHECKPOINT_START_DATE"]).replace(tzinfo=timezone.utc)
+            if os.getenv("CHECKPOINT_START_DATE")
+            else datetime(2026, 5, 25, 12, 0, 0, tzinfo=timezone.utc)
+        )
+    )
+    checkpoint_benchmark_miner_uid: Optional[int] = field(
+        default_factory=lambda: (
+            int(os.environ["CHECKPOINT_BENCHMARK_MINER_UID"])
+            if os.getenv("CHECKPOINT_BENCHMARK_MINER_UID") else 14253
+        )
     )

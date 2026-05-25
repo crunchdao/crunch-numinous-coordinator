@@ -32,11 +32,13 @@ class RegisterModels(AbstractTask):
         interval_seconds: float,
         db_operations: DatabaseOperations,
         model_cluster: ModelCluster,
+        pg_client,
         logger: NuminousLogger,
     ):
         self.interval = interval_seconds
         self.db_operations = db_operations
         self.model_cluster = model_cluster
+        self.pg_client = pg_client
         self.logger = logger
 
     @property
@@ -93,9 +95,35 @@ class RegisterModels(AbstractTask):
 
         if miners_data:
             await self.db_operations.upsert_miners(miners_data)
+            await self.db_operations.upsert_miner_agents(miner_agents)
+
+            # Upsert model metadata in PG (model_scores table)
+            pg_rows = []
+            for model in models.values():
+                miner_uid = int(model.model_id)
+                infos = model.infos or {}
+                pg_rows.append((
+                    miner_uid,
+                    model.model_name,
+                    infos.get("cruncher_id"),
+                    infos.get("cruncher_name"),
+                    model.deployment_id,
+                ))
+
+            await self.pg_client.executemany(
+                """
+                INSERT INTO model_scores (miner_uid, model_name, cruncher_id, cruncher_name, deployment_id)
+                VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (miner_uid) DO UPDATE SET
+                    model_name = EXCLUDED.model_name,
+                    cruncher_id = EXCLUDED.cruncher_id,
+                    cruncher_name = EXCLUDED.cruncher_name,
+                    deployment_id = EXCLUDED.deployment_id
+                """,
+                pg_rows,
+            )
+
             self.logger.info(
                 "Registered models as miners",
                 extra={"n_models": len(miners_data)},
             )
-
-            await self.db_operations.upsert_miner_agents(miner_agents)

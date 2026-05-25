@@ -102,7 +102,29 @@ async def get_leaderboard():
         ORDER BY track, rank
         """
     )
-    return [dict(r) for r in rows]
+
+    # Cumulative rewards from all checkpoints
+    reward_rows = await _pool.fetch(
+        """
+        SELECT
+            (e->>'model_id')::int AS miner_uid,
+            e->>'track' AS track,
+            SUM((e->>'reward_amount')::float) AS total_reward
+        FROM checkpoints c,
+             jsonb_array_elements(c.reward_entries::jsonb) AS e
+        WHERE (e->>'reward_amount')::float > 0
+        GROUP BY (e->>'model_id')::int, e->>'track'
+        """
+    )
+    rewards = {(r["miner_uid"], r["track"]): r["total_reward"] for r in reward_rows}
+
+    result = []
+    for r in rows:
+        entry = dict(r)
+        entry["reward"] = rewards.get((r["miner_uid"], r["track"]), 0.0)
+        result.append(entry)
+
+    return result
 
 
 @app.get("/model/active-events")

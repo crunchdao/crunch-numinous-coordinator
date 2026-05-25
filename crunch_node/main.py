@@ -123,6 +123,7 @@ async def main():
         interval_seconds=config.register_models_interval,
         db_operations=db_operations,
         model_cluster=model_cluster,
+        pg_client=pg_client,
         logger=logger,
     )
 
