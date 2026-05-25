@@ -20,14 +20,11 @@ class TopicFilter(Enum):
     GEOPOLITICS_ONLY = "geopolitics_only"
 
 
-# Pool configuration from numinous-weight.png
+# Pool configuration (SIGNAL track only)
 POOL_CONFIG = [
-    {"pool": "global_brier",      "track": "MAIN",   "emission": 0.05, "max_events": 600, "min_events": 200, "top_miner_min_events": 500},
-    {"pool": "geopolitics_brier", "track": "MAIN",   "emission": 0.05, "max_events": 200, "min_events": 200, "top_miner_min_events": None},
-    {"pool": "reasoning",         "track": "MAIN",   "emission": 0.25, "max_events": 200, "min_events": 100, "top_miner_min_events": None},
-    {"pool": "global_brier",      "track": "SIGNAL", "emission": 0.30, "max_events": 600, "min_events": 200, "top_miner_min_events": 300},
-    {"pool": "geopolitics_brier", "track": "SIGNAL", "emission": 0.15, "max_events": 200, "min_events": 100, "top_miner_min_events": None},
-    {"pool": "reasoning",         "track": "SIGNAL", "emission": 0.20, "max_events": 200, "min_events": 100, "top_miner_min_events": None},
+    {"pool": "global_brier",      "track": "SIGNAL", "emission": 0.60, "max_events": 600, "min_events": 200, "top_miner_min_events": 300},
+    {"pool": "geopolitics_brier", "track": "SIGNAL", "emission": 0.25, "max_events": 200, "min_events": 100, "top_miner_min_events": None},
+    {"pool": "reasoning",         "track": "SIGNAL", "emission": 0.10, "max_events": 200, "min_events": 100, "top_miner_min_events": None},
 ]
 
 
