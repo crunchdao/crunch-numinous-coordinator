@@ -5,6 +5,7 @@ Reads predictions, scores, agent runs directly from PG
 and exposes them via REST endpoints.
 """
 
+import json
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import List
@@ -128,6 +129,15 @@ async def get_leaderboard():
     return result
 
 
+def _parse_checkpoint(row) -> dict:
+    d = dict(row)
+    if isinstance(d.get("reward_entries"), str):
+        d["reward_entries"] = json.loads(d["reward_entries"])
+    if isinstance(d.get("meta"), str):
+        d["meta"] = json.loads(d["meta"])
+    return d
+
+
 @app.get("/checkpoints/latest")
 async def get_checkpoint_latest():
     row = await _pool.fetchrow(
@@ -135,7 +145,7 @@ async def get_checkpoint_latest():
     )
     if not row:
         raise HTTPException(status_code=404, detail="No checkpoints found")
-    return dict(row)
+    return _parse_checkpoint(row)
 
 
 @app.get("/checkpoints")
@@ -149,7 +159,7 @@ async def get_checkpoints(status: str | None = None):
         rows = await _pool.fetch(
             "SELECT id, period_start, period_end, status, reward_entries, meta, created_at FROM checkpoints ORDER BY created_at DESC"
         )
-    return [dict(r) for r in rows]
+    return [_parse_checkpoint(r) for r in rows]
 
 
 @app.get("/model/active-events")
