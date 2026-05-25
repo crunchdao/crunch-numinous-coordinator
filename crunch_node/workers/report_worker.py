@@ -227,6 +227,7 @@ async def get_model_scored_events(
             p.prediction,
             p.submitted_at,
             s.event_score,
+            s.scored_at,
             (s.reasoning_scores->>'sources')::int      AS reasoning_sources,
             (s.reasoning_scores->>'evidence')::int     AS reasoning_evidence,
             (s.reasoning_scores->>'uncertainties')::int AS reasoning_uncertainties,
