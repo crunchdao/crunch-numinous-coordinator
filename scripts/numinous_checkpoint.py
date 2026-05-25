@@ -28,7 +28,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-DEFAULT_API_URL = "http://localhost:8000"
+DEFAULT_API_URL = "https://report.numinous.competition.crunchdao.com"
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROCESSED_CHECKPOINTS_FILE = SCRIPT_DIR / ".processed_checkpoints.json"
 SQUADS_URL = "https://app.squads.so/squads/GyNbz9cfYaSPJTVnWyUVwb3SJonFDhEZAqh2qPATwQPg/transactions"
@@ -192,8 +192,12 @@ def run_check_prize_atas(file_path: Path, crunch_name: str, wallet_path: str, mu
         if result.stderr:
             logger.warning("Stderr: %s", result.stderr)
         return True
-    except subprocess.CalledProcessError:
-        logger.exception("check-prize-atas failed")
+    except subprocess.CalledProcessError as e:
+        logger.error("check-prize-atas failed (exit %d)", e.returncode)
+        if e.stdout:
+            logger.error("Stdout: %s", e.stdout)
+        if e.stderr:
+            logger.error("Stderr: %s", e.stderr)
         return False
     except FileNotFoundError:
         logger.error("crunch-coordinator not found. Ensure it's installed and in PATH.")
@@ -278,9 +282,9 @@ def main():
 
     parser.add_argument("--api-url", default=DEFAULT_API_URL, help="Coordinator API base URL")
     parser.add_argument("--output", default=str(SCRIPT_DIR / "prizes_payout.json"), help="Output JSON file path")
-    parser.add_argument("--crunch", default="numinous", help="Crunch name for coordinator-cli")
+    parser.add_argument("--crunch", default="numinous_v12", help="Crunch name for coordinator-cli")
     parser.add_argument("--wallet", required=True, help="Path to wallet file")
-    parser.add_argument("--multisig", required=True, help="Multisig address for checkpoint")
+    parser.add_argument("--multisig", required=True, default="7K1DxKE638H43tzRg9rUCAhkhvDWZ8XLaDCgLAMCAcax", help="Multisig address for checkpoint")
     parser.add_argument("--checkpoint-id", help="Fetch a specific checkpoint by ID")
     parser.add_argument("--no-execute", action="store_true", help="Generate file only")
     parser.add_argument("--slack-webhook", help="Slack webhook URL for notifications")
