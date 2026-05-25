@@ -128,6 +128,30 @@ async def get_leaderboard():
     return result
 
 
+@app.get("/checkpoints/latest")
+async def get_checkpoint_latest():
+    row = await _pool.fetchrow(
+        "SELECT id, period_start, period_end, status, reward_entries, meta, created_at FROM checkpoints ORDER BY created_at DESC LIMIT 1"
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="No checkpoints found")
+    return dict(row)
+
+
+@app.get("/checkpoints")
+async def get_checkpoints(status: str | None = None):
+    if status:
+        rows = await _pool.fetch(
+            "SELECT id, period_start, period_end, status, reward_entries, meta, created_at FROM checkpoints WHERE status = $1 ORDER BY created_at DESC",
+            status,
+        )
+    else:
+        rows = await _pool.fetch(
+            "SELECT id, period_start, period_end, status, reward_entries, meta, created_at FROM checkpoints ORDER BY created_at DESC"
+        )
+    return [dict(r) for r in rows]
+
+
 @app.get("/model/active-events")
 async def get_model_active_events(
     miner_uids: List[int] = Query(..., alias="projectIds"),
