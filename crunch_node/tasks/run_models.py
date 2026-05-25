@@ -138,11 +138,11 @@ class RunModels(AbstractTask):
         """Process a single event across all its tracks (SIGNAL first, then MAIN)."""
         models = self.concurrent_runner.model_cluster.models_run
 
-        # Resolve tracks: SIGNAL first to prevent caching leaks from MAIN
-        event_tracks = {TrackEnum(t) if isinstance(t, str) else t for t in event.tracks}
-        tracks = [t for t in TRACK_ORDER if t in event_tracks]
-        if not tracks:
-            tracks = [TrackEnum.MAIN]
+        tracks = {TrackEnum(t) if isinstance(t, str) else t for t in event.tracks}
+        if TrackEnum.SIGNAL not in tracks:
+            return
+
+        tracks = [TrackEnum.SIGNAL] # MAIN doesn't have enough emissions, we force for now only SIGNAL
 
         total_counts = {"success": 0, "failed": 0, "timeout": 0}
         for track in tracks:
