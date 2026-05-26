@@ -1,0 +1,12 @@
+{
+  "CKP_20260525_120000": {
+    "num_prizes": 8,
+    "total_amount_usdc": 417.1,
+    "processed_at": "2026-05-25T13:15:42.581828+00:00"
+  },
+  "CKP_20260525_120000_DELTA": {
+    "num_prizes": 8,
+    "total_amount_usdc": 64.22,
+    "processed_at": "2026-05-26T18:39:00.779060+00:00"
+  }
+}
