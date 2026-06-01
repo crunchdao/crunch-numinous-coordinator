@@ -142,7 +142,7 @@ class CrunchNodeConfig:
 
     # Checkpoint (reward distribution)
     checkpoint_reward_pool: float = field(
-        default_factory=lambda: float(os.getenv("CHECKPOINT_REWARD_POOL", "500.0"))
+        default_factory=lambda: float(os.getenv("CHECKPOINT_REWARD_POOL", "577.0"))
     )
     checkpoint_top_k: int = field(
         default_factory=lambda: int(os.getenv("CHECKPOINT_TOP_K", "10"))
