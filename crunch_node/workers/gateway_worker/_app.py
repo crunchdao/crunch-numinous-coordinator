@@ -26,6 +26,7 @@ CLIENTS = {
     "public-data": (None, None),
     "unusual-whales": (UnusualWhalesClient, "UNUSUAL_WHALES_API_KEY"),
     "vericore": (VericoreClient, "VERICORE_API_KEY"),
+    "openrouter": (OpenRouterClient, "OPENROUTER_API_KEY"),
 }
 
 
@@ -138,7 +139,7 @@ def apply_openapi_patch():
             continue
 
         client_name = match.group(1)
-        client_class, api_key_env_var = CLIENTS[client_name]
+        _, api_key_env_var = CLIENTS[client_name]
 
         if api_key_env_var is None:
             continue
