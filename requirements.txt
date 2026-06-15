@@ -9,7 +9,7 @@ alembic==1.14.1
 sqlalchemy==2.0.37
 python-dotenv
 colorama
-fastapi
+fastapi==0.110.3
 uvicorn
 coloredlogs
 requests
