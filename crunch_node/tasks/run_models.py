@@ -206,6 +206,19 @@ class RunModels(AbstractTask):
                 await self.db_operations.upsert_predictions([new_pred])
                 continue
 
+            # this is to mimic real behavior, we are not using non final runs here
+            # actually testing for any runs would also works
+            has_final_run = await self.db_operations.has_final_run(
+                unique_event_id=event_id,
+                agent_version_id=version_id,
+            )
+            if has_final_run:
+                self.logger.debug(
+                    "Skipping as final run exists",
+                    extra={"event_id": event_id, "miner_uid": miner_uid, "track": track.value},
+                )
+                continue
+
             models_to_call.append(model)
 
         if not models_to_call:
