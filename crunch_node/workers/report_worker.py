@@ -16,7 +16,7 @@ import asyncpg
 from crunch_node.config import CrunchNodeConfig
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.security import APIKeyHeader
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -108,7 +108,7 @@ class PredictionDetailResponse(BaseModel):
     track: str
     provider_type: Optional[str]
     prediction: Optional[float]
-    interval_start_minutes: Optional[int]
+    interval_start_minutes: Optional[int] = Field(None, description="Daily scoring bucket: minutes elapsed since 2024-01-01 UTC, snapped to midnight boundaries (multiples of 1440).")
     interval_datetime: Optional[datetime]
     submitted_at: Optional[datetime]
     run_id: Optional[str]
@@ -352,7 +352,6 @@ async def get_predictions_for_miner(
     end: Annotated[Optional[datetime], Query(description="Filter predictions submitted before this date (ISO 8601).")] = None,
     event_id: Annotated[Optional[str], Query(description="Filter by unique_event_id.")] = None,
     track: Annotated[Optional[str], Query(description="Filter by track (MAIN or SIGNAL).")] = None,
-    interval_start_minutes: Annotated[Optional[int], Query(description="Filter by prediction horizon in minutes (e.g. 1440 for 24 h).")] = None,
     cursor: Annotated[Optional[str], Query(description="Pagination cursor returned as next_cursor from the previous page.")] = None,
     limit: Annotated[int, Query(ge=1, le=500, description="Number of items per page (default 100, max 500).")] = 100,
     order: Annotated[str, Query(pattern="^(asc|desc)$", description="Sort order by submitted_at: asc (oldest first) or desc (newest first, default).")] = "desc",
@@ -360,9 +359,7 @@ async def get_predictions_for_miner(
     """
     Get predictions for a miner with cursor-based pagination.
 
-    Returns raw prediction rows including `interval_start_minutes` (the horizon in minutes,
-    e.g. 1440 = 24 h) rather than seconds-based horizons used by the synth coordinator.
-    Requires `X-API-Key` header matching PREDICTIONS_API_KEY.
+    **Tip:** Miner UIDs can be found via the /leaderboard endpoint.
 
     **Tip:** use `order=desc&limit=1` with an `event_id` filter to fetch the latest
     prediction for a specific event.
@@ -389,11 +386,6 @@ async def get_predictions_for_miner(
     if track is not None:
         conditions.append(f"track = ${p}")
         args.append(track)
-        p += 1
-
-    if interval_start_minutes is not None:
-        conditions.append(f"interval_start_minutes = ${p}")
-        args.append(interval_start_minutes)
         p += 1
 
     if cursor is not None:
