@@ -49,6 +49,7 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="Numinous Crunch Node — Report Worker",
     lifespan=lifespan,
+    swagger_ui_parameters={"persistAuthorization": True},
 )
 app.state.limiter = limiter
 
