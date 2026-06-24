@@ -126,21 +126,6 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/predictions")
-async def get_predictions(
-    event_id: str | None = None,
-    limit: int = 100,
-):
-    query = "SELECT * FROM predictions"
-    args = []
-    if event_id:
-        query += " WHERE unique_event_id = $1"
-        args.append(event_id)
-    query += f" ORDER BY submitted_at DESC LIMIT {min(limit, 1000)}"
-
-    rows = await _pool.fetch(query, *args)
-    return [dict(r) for r in rows]
-
 
 @app.get("/scores")
 async def get_scores(
@@ -343,31 +328,37 @@ async def get_model_scored_events(
     return [dict(r) for r in rows]
 
 
-@app.get("/predictions/{miner_uid}", response_model=PaginatedPredictionsResponse)
+@app.get("/predictions", response_model=PaginatedPredictionsResponse)
 @limiter.limit(RATE_LIMIT)
-async def get_predictions_for_miner(
+async def get_predictions(
     request: Request,
-    miner_uid: int,
     _: Annotated[None, Depends(_verify_predictions_api_key)],
+    miner_uid: Annotated[Optional[int], Query(description="Filter by miner UID.")] = None,
+    event_id: Annotated[Optional[str], Query(description="Filter by unique_event_id.")] = None,
     start: Annotated[Optional[datetime], Query(description="Filter predictions submitted on or after this date (ISO 8601).")] = None,
     end: Annotated[Optional[datetime], Query(description="Filter predictions submitted before this date (ISO 8601).")] = None,
-    event_id: Annotated[Optional[str], Query(description="Filter by unique_event_id.")] = None,
     track: Annotated[Optional[str], Query(description="Filter by track (MAIN or SIGNAL).")] = None,
     cursor: Annotated[Optional[str], Query(description="Pagination cursor returned as next_cursor from the previous page.")] = None,
     limit: Annotated[int, Query(ge=1, le=500, description="Number of items per page (default 100, max 500).")] = 100,
     order: Annotated[str, Query(pattern="^(asc|desc)$", description="Sort order by submitted_at: asc (oldest first) or desc (newest first, default).")] = "desc",
 ):
     """
-    Get predictions for a miner with cursor-based pagination.
+    Get predictions for a miner or an event or both.
 
-    **Tip:** Miner UIDs can be found via the /leaderboard endpoint.
-
-    **Tip:** use `order=desc&limit=1` with an `event_id` filter to fetch the latest
-    prediction for a specific event.
     """
-    conditions: list[str] = ["miner_uid = $1"]
-    args: list = [miner_uid]
-    p = 2  # next positional parameter index
+    conditions: list[str] = []
+    args: list = []
+    p = 1
+
+    if miner_uid is not None:
+        conditions.append(f"miner_uid = ${p}")
+        args.append(miner_uid)
+        p += 1
+
+    if event_id is not None:
+        conditions.append(f"unique_event_id = ${p}")
+        args.append(event_id)
+        p += 1
 
     if start is not None:
         conditions.append(f"submitted_at >= ${p}")
@@ -377,11 +368,6 @@ async def get_predictions_for_miner(
     if end is not None:
         conditions.append(f"submitted_at < ${p}")
         args.append(end)
-        p += 1
-
-    if event_id is not None:
-        conditions.append(f"unique_event_id = ${p}")
-        args.append(event_id)
         p += 1
 
     if track is not None:
@@ -399,13 +385,13 @@ async def get_predictions_for_miner(
         args.extend([cur_ts, cur_uid, cur_track, cur_mins])
         p += 4
 
-    where = " AND ".join(conditions)
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     dir_ = "DESC" if order == "desc" else "ASC"
     query = (
         f"SELECT unique_event_id, miner_uid, track, provider_type, prediction, "
         f"interval_start_minutes, interval_datetime, submitted_at, run_id, version_id "
         f"FROM predictions "
-        f"WHERE {where} "
+        f"{where} "
         f"ORDER BY submitted_at {dir_}, unique_event_id {dir_}, track {dir_}, interval_start_minutes {dir_} "
         f"LIMIT {limit}"
     )
