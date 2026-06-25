@@ -20,3 +20,4 @@ openai
 testcontainers[postgres]
 pytest-asyncio
 nest-asyncio2
+slowapi

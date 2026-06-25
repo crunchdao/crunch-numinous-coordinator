@@ -80,6 +80,8 @@ services:
       <<: *worker-env
       NEW_RELIC_APP_NAME: "${NEW_RELIC_APP_NAME:-${COMPOSE_PROJECT_NAME}} (Report Worker)"
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+      PREDICTIONS_API_KEY: ${PREDICTIONS_API_KEY:-}
+      RATE_LIMIT: ${RATE_LIMIT:-180/minute}
     restart: always
     command: [
       "uvicorn",
