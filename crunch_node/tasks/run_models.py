@@ -341,12 +341,17 @@ class RunModels(AbstractTask):
                     )
                 else:
                     status = AgentRunStatus.INVALID_SANDBOX_OUTPUT
+                    if prediction_value is None:
+                        logs = f"Invalid output: 'prediction' key missing from result dict. Got keys: {list(result.keys())}"
+                    else:
+                        logs = f"Invalid output: 'prediction' must be a float, got {type(prediction_value).__name__} = {repr(prediction_value)}"
                     self.logger.warning(
                         "Invalid prediction from model",
                         extra={"event_id": event_id, "miner_uid": miner_uid, "result": str(result)},
                     )
             else:
                 status = AgentRunStatus.INVALID_SANDBOX_OUTPUT
+                logs = f"Invalid output: expected dict, got {type(predict_result.result).__name__} = {repr(predict_result.result)[:200]}"
                 self.logger.warning(
                     "Model returned non-dict result",
                     extra={"event_id": event_id, "miner_uid": miner_uid},
